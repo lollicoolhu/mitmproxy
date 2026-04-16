@@ -19,6 +19,7 @@ from typing import ClassVar
 from typing import Concatenate
 from typing import Literal
 from typing import Optional
+from dataclasses import asdict
 
 import tornado.escape
 import tornado.web
@@ -40,7 +41,7 @@ from mitmproxy.dns import DNSFlow
 from mitmproxy.http import HTTPFlow
 from mitmproxy.tcp import TCPFlow
 from mitmproxy.tcp import TCPMessage
-from mitmproxy.tools.web.webaddons import WebAuth
+from mitmproxy.tools.web.webaddons import WebAuth, InterceptRule, InterceptConfig
 from mitmproxy.udp import UDPFlow
 from mitmproxy.udp import UDPMessage
 from mitmproxy.utils import asyncio_utils
@@ -95,6 +96,7 @@ def flow_to_json(flow: mitmproxy.flow.Flow) -> dict:
         "marked": emoji.get(flow.marked, "🔴") if flow.marked else "",
         "comment": flow.comment,
         "timestamp_created": flow.timestamp_created,
+        "is_mocked": flow.metadata.get("is_mocked", False),
     }
 
     if flow.client_conn:
@@ -884,6 +886,41 @@ class GZipContentAndFlowFiles(tornado.web.GZipContentEncoding):
     }
 
 
+class CheckInterceptDuplicateHandler(RequestHandler):
+    def post(self):
+        config: InterceptConfig = self.master.addons.get("interceptconfig")
+        rule_data = self.json
+        rule = InterceptRule(**rule_data)
+        duplicate = config.find_duplicate(rule)
+        if duplicate:
+            self.write(asdict(duplicate))
+        else:
+            self.set_status(204)
+
+
+class InterceptRulesHandler(RequestHandler):
+    def get(self):
+        config: InterceptConfig = self.master.addons.get("interceptconfig")
+        self.write([asdict(r) for r in config.rules.values()])
+
+    def post(self):
+        config: InterceptConfig = self.master.addons.get("interceptconfig")
+        rule_data = self.json
+        rule = InterceptRule(**rule_data)
+        config.rules[rule.id] = rule
+        self.write(asdict(rule))
+
+
+class DeleteInterceptRuleHandler(RequestHandler):
+    def delete(self, rule_id):
+        config: InterceptConfig = self.master.addons.get("interceptconfig")
+        if rule_id in config.rules:
+            del config.rules[rule_id]
+            self.set_status(204)
+        else:
+            raise APIError(404, "Rule not found")
+
+
 handlers = [
     (r"/", IndexHandler),
     (r"/filter-help(?:\.json)?", FilterHelp),
@@ -909,6 +946,9 @@ handlers = [
     (r"/state(?:\.json)?", State),
     (r"/processes", ProcessList),
     (r"/executable-icon", ProcessImage),
+    (r"/intercept/rules", InterceptRulesHandler),
+    (r"/intercept/rules/check-duplicate", CheckInterceptDuplicateHandler),
+    (r"/intercept/rules/(?P<rule_id>[0-9a-z\-]+)", DeleteInterceptRuleHandler),
 ]  # fmt: skip
 
 

@@ -17,9 +17,12 @@ import {
     revert as revertFlows,
     mark as markFlows,
 } from "../../ducks/flows";
+import { setActiveRule } from "../../ducks/ui/intercept";
+import * as modalActions from "../../ducks/ui/modal";
+import { fetchApi } from "../../utils";
 import Dropdown, { MenuItem } from "../common/Dropdown";
 import { copy } from "../../flow/export";
-import type { Flow } from "../../flow";
+import type { Flow, HTTPFlow } from "../../flow";
 
 import type { JSX } from "react";
 
@@ -32,6 +35,35 @@ export default function FlowMenu(): JSX.Element {
     const flow = selectedFlows[0];
 
     const canResumeOrKillAny = selectedFlows.some(canResumeOrKill);
+
+    const onIntercept = async () => {
+        if (flow.type !== "http") return;
+        const httpFlow = flow as HTTPFlow;
+        
+        let response_content = "MOCK RESPONSE";
+        if (httpFlow.response) {
+            try {
+                const resp = await fetchApi(MessageUtils.getContentURL(httpFlow, httpFlow.response));
+                if (resp.ok) {
+                    response_content = await resp.text();
+                }
+            } catch (e) {
+                console.error("Could not fetch response content", e);
+            }
+        }
+
+        dispatch(setActiveRule({
+            id: Math.random().toString(36).substring(7),
+            method: httpFlow.request.method,
+            path: httpFlow.request.path.split("?")[0],
+            query: httpFlow.request.path.split("?")[1] || "",
+            response_code: httpFlow.response?.status_code || 200,
+            response_headers: httpFlow.response?.headers || [],
+            response_content: response_content,
+            enabled: true,
+        }));
+        dispatch(modalActions.setActiveModal("InterceptRuleModal"));
+    };
 
     if (selectedFlows.length === 0) return <div />;
     return (
@@ -84,8 +116,16 @@ export default function FlowMenu(): JSX.Element {
                 <div className="menu-content">
                     <DownloadButton flow={flow} />
                     <ExportButton flow={flow} />
+                    <Button
+                        title="Add intercept rule"
+                        icon="fa-shield text-warning"
+                        onClick={onIntercept}
+                        disabled={flow.type !== "http"}
+                    >
+                        Intercept
+                    </Button>
                 </div>
-                <div className="menu-legend">Export</div>
+                <div className="menu-legend">Export & Intercept</div>
             </div>
 
             <HideInStatic>

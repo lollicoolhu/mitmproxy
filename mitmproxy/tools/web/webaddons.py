@@ -6,17 +6,75 @@ import secrets
 import webbrowser
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
+from dataclasses import dataclass, asdict
+from urllib.parse import parse_qsl
 
 import argon2
 
 from mitmproxy import ctx
 from mitmproxy import exceptions
+from mitmproxy import http
 from mitmproxy.tools.web.web_columns import AVAILABLE_WEB_COLUMNS
 
 if TYPE_CHECKING:
     from mitmproxy.tools.web.master import WebMaster
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class InterceptRule:
+    id: str
+    method: str
+    path: str
+    query: str
+    response_code: int
+    response_headers: list[tuple[str, str]]
+    response_content: str
+    enabled: bool
+
+
+class InterceptConfig:
+    rules: dict[str, InterceptRule]
+
+    def __init__(self):
+        self.rules = {}
+
+    def request(self, flow: http.HTTPFlow):
+        for rule in self.rules.values():
+            if not rule.enabled:
+                continue
+            if flow.request.method != rule.method:
+                continue
+            if flow.request.path.split("?")[0] != rule.path:
+                continue
+            
+            # Key-Value query matching
+            if rule.query:
+                rule_query = dict(parse_qsl(rule.query))
+                flow_query = dict(flow.request.query or [])
+                # Match if all keys in rule_query exist in flow_query with same value
+                if not all(flow_query.get(k) == v for k, v in rule_query.items()):
+                    continue
+            
+            headers = [
+                (k.encode("utf-8") if isinstance(k, str) else k, 
+                 v.encode("utf-8") if isinstance(v, str) else v)
+                for k, v in rule.response_headers
+            ]
+            flow.response = http.Response.make(
+                rule.response_code,
+                rule.response_content.encode("utf-8"),
+                headers
+            )
+            flow.metadata["is_mocked"] = True
+            break
+
+    def find_duplicate(self, rule: InterceptRule) -> InterceptRule | None:
+        for r in self.rules.values():
+            if r.id != rule.id and r.method == rule.method and r.path == rule.path and r.query == rule.query:
+                return r
+        return None
 
 
 class WebAuth:

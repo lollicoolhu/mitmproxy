@@ -5,6 +5,7 @@ import FlowView from "./FlowView";
 import { useAppSelector } from "../ducks";
 import CaptureSetup from "./Modes/CaptureSetup";
 import Modes from "./Modes";
+import InterceptConfig from "./InterceptConfig";
 import { Tab } from "../ducks/ui/tabs";
 
 export default function MainView() {
@@ -13,6 +14,10 @@ export default function MainView() {
     );
     const hasFlows = useAppSelector((state) => state.flows.list.length > 0);
     const currentTab = useAppSelector((state) => state.ui.tabs.current);
+
+    if (currentTab === Tab.Intercept) {
+        return <InterceptConfig />;
+    }
 
     return (
         <div className="main-view">

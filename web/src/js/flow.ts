@@ -13,6 +13,7 @@ interface _Flow {
     client_conn: Client;
     server_conn?: Server;
     error?: Error;
+    is_mocked?: boolean;
 }
 
 export type Flow = HTTPFlow | TCPFlow | UDPFlow | DNSFlow;

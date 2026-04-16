@@ -25,6 +25,7 @@ export default React.memo(function FlowRow({
         selected,
         highlighted,
         intercepted: flow.intercepted,
+        mocked: flow.is_mocked,
         "has-request": flow.type === "http" && flow.request,
         "has-response": flow.type === "http" && flow.response,
     });

@@ -5,6 +5,7 @@ export enum Tab {
     Capture,
     FlowList,
     Options,
+    Intercept,
     Flow,
 }
 

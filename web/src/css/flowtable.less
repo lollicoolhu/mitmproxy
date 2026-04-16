@@ -92,6 +92,7 @@
     }
 
     @interceptorange: hsl(30, 100%, 50%);
+    @mockedblue: hsl(200, 100%, 40%);
 
     tr.intercepted:not(.has-response) {
         .col-path,
@@ -105,6 +106,15 @@
         .col-size,
         .col-time {
             color: @interceptorange;
+        }
+    }
+
+    tr.mocked {
+        .col-path,
+        .col-method,
+        .col-status {
+            color: @mockedblue;
+            font-weight: bold;
         }
     }
 
