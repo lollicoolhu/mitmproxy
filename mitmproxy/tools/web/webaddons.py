@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MatchCriterion:
+    type: str  # query, cookie, header, body
     key: str  # 或 JSON 路径
     operator: str  # eq, neq, contains, exists
     value: str
@@ -40,10 +41,7 @@ class InterceptRule:
     response_code: int
     response_content: str
     enabled: bool
-    query: list[dict] = field(default_factory=list)
-    cookies: list[dict] = field(default_factory=list)
-    headers: list[dict] = field(default_factory=list)
-    body: list[dict] = field(default_factory=list)
+    criteria: list[dict] = field(default_factory=list)
     response_headers: list[dict] = field(default_factory=list)
     # 新增参考信息，用于展示原始请求，包含 headers, body, query, path 等
     reference_info: dict = field(default_factory=dict)
@@ -66,26 +64,9 @@ class InterceptConfig:
             if flow.request.path.split("?")[0] != rule.path:
                 continue
 
-            # 2. Query 匹配
-            if not self._match_criteria(rule.query, flow.request.query):
+            # 2. 组合匹配规则
+            if not self._match_all_criteria(rule.criteria, flow):
                 continue
-
-            # 3. Cookie 匹配
-            if not self._match_criteria(rule.cookies, flow.request.cookies):
-                continue
-
-            # 4. Header 匹配
-            if not self._match_criteria(rule.headers, flow.request.headers, case_sensitive=False):
-                continue
-
-            # 5. Body 匹配 (JSON)
-            if rule.body:
-                try:
-                    body_json = json.loads(flow.request.content or b"{}")
-                    if not self._match_body_criteria(rule.body, body_json):
-                        continue
-                except (json.JSONDecodeError, Exception):
-                    continue
 
             # 匹配成功，构造响应
             headers = []
@@ -106,76 +87,37 @@ class InterceptConfig:
             flow.metadata["is_mocked"] = True
             break
 
-    def _match_criteria(self, criteria: list[dict], data_map, case_sensitive=True) -> bool:
+    def _match_all_criteria(self, criteria: list[dict], flow: http.HTTPFlow) -> bool:
         if not criteria:
             return True
 
-        # 处理大小写敏感性（针对 Header）
-        if not case_sensitive:
-            normalized_map = {k.lower(): v for k, v in data_map.items()}
-        else:
-            normalized_map = data_map
-
-        result = True  # 初始值为 True，因为第一个通常是 AND
-        for i, c in enumerate(criteria):
-            key = c['key'].lower() if not case_sensitive else c['key']
-            op = c['operator']
-            val = c['value']
-            logic = c.get('logic', 'and')
-
-            current_match = False
-            if op == "exists":
-                current_match = key in normalized_map
-            elif key in normalized_map:
-                actual_val = normalized_map[key]
-                if op == "eq":
-                    current_match = actual_val == val
-                elif op == "neq":
-                    current_match = actual_val != val
-                elif op == "contains":
-                    current_match = val in actual_val
-
-            if i == 0:
-                result = current_match
-            else:
-                if logic == "or":
-                    result = result or current_match
-                else:
-                    result = result and current_match
-        return result
-
-    def _match_body_criteria(self, criteria: list[dict], body_json) -> bool:
         result = True
+        body_json = None
+
         for i, c in enumerate(criteria):
-            path = c['key']
-            op = c['operator']
-            expected_val = c['value']
+            ctype = c.get('type', 'header')
+            key = c.get('key', '')
+            op = c.get('operator', 'eq')
+            val = c.get('value', '')
             logic = c.get('logic', 'and')
 
-            actual_values = self._get_json_path(body_json, path)
             current_match = False
-
-            if op == "exists":
-                current_match = len(actual_values) > 0 and actual_values[0] is not None
-            else:
-                for actual in actual_values:
-                    # 类型转换比较
-                    str_actual = str(actual)
-                    if op == "eq":
-                        if str_actual == expected_val:
-                            current_match = True
-                            break
-                        # 尝试数字比较
-                        try:
-                            if float(actual) == float(expected_val):
-                                current_match = True
-                                break
-                        except (ValueError, TypeError):
-                            pass
-                    elif op == "contains":
-                        if expected_val in str_actual:
-                            current_match = True
-                            break
+            
+            if ctype == 'query':
+                current_match = self._match_single(key, op, val, flow.request.query)
+            elif ctype == 'cookie':
+                current_match = self._match_single(key, op, val, flow.request.cookies)
+            elif ctype == 'header':
+                # Header 匹配忽略大小写
+                normalized_map = {k.lower(): v for k, v in flow.request.headers.items()}
+                current_match = self._match_single(key.lower(), op, val, normalized_map)
+            elif ctype == 'body':
+                if body_json is None:
+                    try:
+                        body_json = json.loads(flow.request.content or b"{}")
+                    except (json.JSONDecodeError, Exception):
+                        body_json = {}
+                current_match = self._match_body_single(key, op, val, body_json)
 
             if i == 0:
                 result = current_match
@@ -185,6 +127,41 @@ class InterceptConfig:
                 else:
                     result = result and current_match
         return result
+
+    def _match_single(self, key: str, op: str, val: str, data_map) -> bool:
+        if op == "exists":
+            return key in data_map
+        if key not in data_map:
+            return False
+        
+        actual_val = data_map[key]
+        if op == "eq":
+            return actual_val == val
+        if op == "neq":
+            return actual_val != val
+        if op == "contains":
+            return val in actual_val
+        return False
+
+    def _match_body_single(self, path: str, op: str, expected_val: str, body_json) -> bool:
+        actual_values = self._get_json_path(body_json, path)
+        if op == "exists":
+            return len(actual_values) > 0 and actual_values[0] is not None
+        
+        for actual in actual_values:
+            str_actual = str(actual)
+            if op == "eq":
+                if str_actual == expected_val:
+                    return True
+                try:
+                    if float(actual) == float(expected_val):
+                        return True
+                except (ValueError, TypeError):
+                    pass
+            elif op == "contains":
+                if expected_val in str_actual:
+                    return True
+        return False
 
     def _get_json_path(self, data, path: str) -> list:
         # 极简版 JSON Path 解析: 支持 a.b, a[0], a[*].b
@@ -211,7 +188,8 @@ class InterceptConfig:
 
     def find_duplicate(self, rule: InterceptRule) -> InterceptRule | None:
         for r in self.rules.values():
-            if r.id != rule.id and r.method == rule.method and r.path == rule.path and r.query == rule.query:
+            # 简化重复检查，由于 criteria 结构变了，这里只检查 Method 和 Path
+            if r.id != rule.id and r.method == rule.method and r.path == rule.path:
                 return r
         return None
 

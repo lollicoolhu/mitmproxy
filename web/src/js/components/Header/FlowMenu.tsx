@@ -70,15 +70,14 @@ export default function FlowMenu(): JSX.Element {
             query: [],
             response_code: httpFlow.response?.status_code || 200,
             response_headers: (httpFlow.response?.headers || []).map(([k, v]) => ({
+                type: "header",
                 key: k,
                 operator: "eq",
                 value: v,
             })),
             response_content: response_content,
             enabled: true,
-            cookies: [],
-            headers: [],
-            body: [],
+            criteria: [],
             reference_info: {
                 path: httpFlow.request.path,
                 query: httpFlow.request.query,

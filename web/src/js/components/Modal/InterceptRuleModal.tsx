@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../ducks";
 import * as modalAction from "../../ducks/ui/modal";
 import { saveRule, checkDuplicate } from "../../ducks/ui/intercept";
@@ -7,21 +8,18 @@ import InterceptRuleEditor from "../InterceptConfig/InterceptRuleEditor";
 export default function InterceptRuleModal() {
     const dispatch = useAppDispatch();
     const activeRule = useAppSelector((state) => state.ui.intercept.activeRule);
+    const [error, setError] = useState<string | null>(null);
 
     if (!activeRule) return null;
 
     const onSave = async () => {
+        setError(null);
         const duplicate = await checkDuplicate(activeRule);
         if (duplicate && duplicate.id !== activeRule.id) {
-            if (!confirm("A rule with the same Method, Path, and Query already exists. Overwrite it?")) {
-                return;
-            }
-            // Use the duplicate ID to overwrite
-            const ruleToSave = { ...activeRule, id: duplicate.id };
-            dispatch(saveRule(ruleToSave));
-        } else {
-            dispatch(saveRule(activeRule));
+            setError("A rule with the same Method and Path already exists.");
+            return;
         }
+        dispatch(saveRule(activeRule));
         dispatch(modalAction.hideModal());
     };
 
@@ -41,7 +39,13 @@ export default function InterceptRuleModal() {
             <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
                 <InterceptRuleEditor rule={activeRule} />
             </div>
-            <div className="modal-footer">
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
+                {error && (
+                    <span style={{ color: '#d9534f', fontSize: '12px', fontWeight: 'bold' }}>
+                        <i className="fa fa-exclamation-triangle mr-1" />
+                        {error}
+                    </span>
+                )}
                 <button className="btn btn-primary" onClick={onSave}>Save</button>
             </div>
         </div>

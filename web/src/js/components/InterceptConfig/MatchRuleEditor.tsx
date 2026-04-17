@@ -7,15 +7,23 @@ interface Props {
     criteria: MatchCriterion[];
     onChange: (criteria: MatchCriterion[]) => void;
     placeholder?: string;
+    showTypeSelector?: boolean;
+    helpText?: string;
 }
 
-export default function MatchRuleEditor({ title, criteria, onChange, placeholder }: Props) {
+export default function MatchRuleEditor({ title, criteria, onChange, placeholder, showTypeSelector, helpText }: Props) {
     const stopKeyPropagation = (e: React.KeyboardEvent) => {
         e.stopPropagation();
     };
 
     const addCriterion = () => {
-        onChange([...criteria, { key: "", operator: "eq", value: "", logic: criteria.length > 0 ? "and" : undefined }]);
+        onChange([...criteria, { 
+            type: "header", 
+            key: "", 
+            operator: "eq", 
+            value: "", 
+            logic: criteria.length > 0 ? "and" : undefined 
+        }]);
     };
 
     const updateCriterion = (index: number, patch: Partial<MatchCriterion>) => {
@@ -30,8 +38,14 @@ export default function MatchRuleEditor({ title, criteria, onChange, placeholder
 
     return (
         <div className="match-rule-editor">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <label style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', margin: 0, padding: 0, display: 'flex', alignItems: 'center', height: '24px' }}>{title}</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label 
+                    style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', margin: 0, padding: 0, display: 'flex', alignItems: 'center', height: '24px', cursor: helpText ? 'help' : 'default' }}
+                    title={helpText}
+                >
+                    {title}
+                    {helpText && <i className="fa fa-question-circle ml-1" style={{ color: '#aaa', fontSize: '12px' }} />}
+                </label>
                 <div style={{ display: 'flex', alignItems: 'center', height: '24px' }}>
                     <Button className="btn-xs" icon="fa-plus" onClick={addCriterion}>
                         Add
@@ -41,7 +55,7 @@ export default function MatchRuleEditor({ title, criteria, onChange, placeholder
             <div onKeyDownCapture={stopKeyPropagation} style={{ border: '1px solid #ccc', borderRadius: '4px', padding: '4px', background: '#fff' }}>
                 {criteria.length === 0 && (
                     <div style={{ color: '#ccc', fontSize: '11px', fontStyle: 'italic', padding: '8px', textAlign: 'center' }}>
-                        No {title.toLowerCase()} criteria added.
+                        No criteria added.
                     </div>
                 )}
                 {criteria.map((c, i) => (
@@ -62,6 +76,23 @@ export default function MatchRuleEditor({ title, criteria, onChange, placeholder
                                 </select>
                             )}
                         </div>
+
+                        {/* Type Selector (Optional) */}
+                        {showTypeSelector && (
+                            <div style={{ width: '80px', flexShrink: 0 }}>
+                                <select
+                                    className="form-control"
+                                    style={{ height: '26px', fontSize: '10px', padding: '0 4px', fontWeight: 'bold' }}
+                                    value={c.type || "header"}
+                                    onChange={e => updateCriterion(i, { type: e.target.value })}
+                                >
+                                    <option value="query">QUERY</option>
+                                    <option value="cookie">COOKIE</option>
+                                    <option value="header">HEADER</option>
+                                    <option value="body">BODY</option>
+                                </select>
+                            </div>
+                        )}
                         
                         {/* Key Input */}
                         <span style={{ flex: 1, minWidth: '0' }}>
@@ -69,7 +100,7 @@ export default function MatchRuleEditor({ title, criteria, onChange, placeholder
                                 type="text"
                                 className="form-control"
                                 style={{ height: '26px', fontSize: '11px' }}
-                                placeholder={placeholder || "Key"}
+                                placeholder={c.type === 'body' ? "JSON Path (e.g. user.id)" : (placeholder || "Key")}
                                 value={c.key}
                                 onChange={e => updateCriterion(i, { key: e.target.value })}
                             />

@@ -3,6 +3,7 @@ import { Action } from "redux";
 import { fetchApi } from "../../utils";
 
 export interface MatchCriterion {
+    type: string; // query, cookie, header, body
     key: string;
     operator: string;
     value: string;
@@ -13,14 +14,11 @@ export interface InterceptRule {
     id: string;
     method: string;
     path: string;
-    query: MatchCriterion[];
     response_code: number;
-    response_headers: MatchCriterion[];
     response_content: string;
     enabled: boolean;
-    cookies: MatchCriterion[];
-    headers: MatchCriterion[];
-    body: MatchCriterion[];
+    criteria: MatchCriterion[];
+    response_headers: MatchCriterion[];
     reference_info?: {
         path?: string;
         query?: Record<string, string>;

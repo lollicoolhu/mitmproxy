@@ -63,7 +63,7 @@ export default function InterceptRuleEditor({ rule }: { rule: InterceptRule }) {
     };
 
     const kvToHeader = (kv: [string, string][]) => {
-        return kv.map(([k, v]) => ({ key: k, value: v, operator: "eq" }));
+        return kv.map(([k, v]) => ({ type: "header", key: k, value: v, operator: "eq" }));
     };
 
     return (
@@ -206,37 +206,16 @@ export default function InterceptRuleEditor({ rule }: { rule: InterceptRule }) {
 
                 <div style={{ marginTop: '16px' }}>
                     <MatchRuleEditor 
-                        title="Query Matching"
-                        criteria={rule.query || []}
-                        onChange={(c) => dispatch(updateActiveRule({ query: c }))}
-                        placeholder="Query Key"
-                    />
-                </div>
-
-                <div style={{ marginTop: '16px' }}>
-                    <MatchRuleEditor 
-                        title="Cookie Matching"
-                        criteria={rule.cookies || []}
-                        onChange={(c) => dispatch(updateActiveRule({ cookies: c }))}
-                        placeholder="Cookie Name"
-                    />
-                </div>
-
-                <div style={{ marginTop: '16px' }}>
-                    <MatchRuleEditor 
-                        title="Header Matching"
-                        criteria={rule.headers || []}
-                        onChange={(c) => dispatch(updateActiveRule({ headers: c }))}
-                        placeholder="Header Name"
-                    />
-                </div>
-
-                <div style={{ marginTop: '16px' }}>
-                    <MatchRuleEditor 
-                        title="Body Matching (JSON)"
-                        criteria={rule.body || []}
-                        onChange={(c) => dispatch(updateActiveRule({ body: c }))}
-                        placeholder="e.g. user.id"
+                        title="Matching Rules"
+                        criteria={rule.criteria || []}
+                        onChange={(c) => dispatch(updateActiveRule({ criteria: c }))}
+                        placeholder="Key or JSON Path"
+                        showTypeSelector={true}
+                        helpText="Define criteria to match against the request. Multiple rules can be combined with AND/OR logic. Examples: 
+- QUERY: page=1 (exact match)
+- HEADER: User-Agent ~ Mozilla (contains)
+- COOKIE: session exists (checks if present)
+- BODY: user.id=123 (JSON Path match)"
                     />
                 </div>
             </div>
@@ -265,7 +244,7 @@ export default function InterceptRuleEditor({ rule }: { rule: InterceptRule }) {
                 <div className="mb-4">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                         <label className="m-0" style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Response Headers</label>
-                        <Button className="btn-xs" icon="fa-plus" onClick={() => dispatch(updateActiveRule({ response_headers: [...(rule.response_headers || []), { key: "", operator: "eq", value: "" }] }))}>
+                        <Button className="btn-xs" icon="fa-plus" onClick={() => dispatch(updateActiveRule({ response_headers: [...(rule.response_headers || []), { type: "header", key: "", operator: "eq", value: "" }] }))}>
                             Add
                         </Button>
                     </div>
@@ -277,7 +256,7 @@ export default function InterceptRuleEditor({ rule }: { rule: InterceptRule }) {
                     </div>
                 </div>
 
-                <div className="form-group" style={{ marginTop: '16px' }}>
+                <div className="form-group">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <label className="m-0" style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Response Content</label>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -287,16 +266,8 @@ export default function InterceptRuleEditor({ rule }: { rule: InterceptRule }) {
                                     Invalid JSON
                                 </span>
                             )}
-                            <Button 
-                                className={`btn-xs ${formatError ? 'btn-danger' : ''}`} 
-                                icon="fa-compress" 
-                                onClick={minifyJson}
-                            >Minify</Button>
-                            <Button 
-                                className={`btn-xs ${formatError ? 'btn-danger' : ''}`} 
-                                icon="fa-align-left" 
-                                onClick={formatJson}
-                            >Format</Button>
+                            <Button className="btn-xs" icon="fa-compress" onClick={minifyJson}>Minify</Button>
+                            <Button className="btn-xs" icon="fa-align-left" onClick={formatJson}>Format</Button>
                         </div>
                     </div>
                     <div style={{ border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden' }}>

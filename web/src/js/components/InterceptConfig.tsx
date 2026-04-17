@@ -32,16 +32,13 @@ export default function InterceptConfig() {
         dispatch(saveRule({ ...rule, enabled: !rule.enabled }));
     };
 
-    const renderQuery = (query: any) => {
-        if (Array.isArray(query)) {
-            return query.map(c => {
-                if (typeof c === 'object' && c !== null) {
-                    return `${c.key || ''}${c.operator === 'eq' ? '=' : (c.operator || '=')}${c.value || ''}`;
-                }
-                return String(c);
-            }).join(', ');
-        }
-        return String(query || "");
+    const renderCriteria = (criteria: any) => {
+        if (!Array.isArray(criteria)) return "";
+        return criteria.map(c => {
+            const type = (c.type || 'header').toUpperCase();
+            const op = c.operator === 'eq' ? '=' : (c.operator || '=');
+            return `${type}:${c.key}${op}${c.value}`;
+        }).join(', ');
     };
 
     return (
@@ -53,7 +50,7 @@ export default function InterceptConfig() {
                             <th className="col-status" style={{ width: '40px' }}>On</th>
                             <th className="col-method">Method</th>
                             <th className="col-path">Path</th>
-                            <th className="col-path">Query</th>
+                            <th className="col-path">Criteria</th>
                             <th className="col-status">Code</th>
                         </tr>
                     </thead>
@@ -70,7 +67,7 @@ export default function InterceptConfig() {
                                 <td className="col-method">{rule.method}</td>
                                 <td className="col-path">{rule.path}</td>
                                 <td className="col-path">
-                                    {renderQuery(rule.query)}
+                                    {renderCriteria(rule.criteria)}
                                 </td>
                                 <td className="col-status">{rule.response_code}</td>
                             </tr>
