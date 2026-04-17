@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useRef } from "react"
 import { useAppDispatch, useAppSelector } from "../../ducks"
-import { fetchRules, setActiveRule, deleteRule } from "../../ducks/ui/intercept"
+import { fetchRules, setActiveRule, deleteRule, saveRule } from "../../ducks/ui/intercept"
 import * as modalActions from "../../ducks/ui/modal"
 import { fetchApi } from "../../utils"
 import Button from "../common/Button"

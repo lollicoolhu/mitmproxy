@@ -52,15 +52,40 @@ export default function FlowMenu(): JSX.Element {
             }
         }
 
+        // Fetch request body for reference
+        let request_body = "";
+        try {
+            const resp = await fetchApi(MessageUtils.getContentURL(httpFlow, httpFlow.request));
+            if (resp.ok) {
+                request_body = await resp.text();
+            }
+        } catch (e) {
+            console.error("Could not fetch request content", e);
+        }
+
         dispatch(setActiveRule({
             id: Math.random().toString(36).substring(7),
             method: httpFlow.request.method,
             path: httpFlow.request.path.split("?")[0],
-            query: httpFlow.request.path.split("?")[1] || "",
+            query: [],
             response_code: httpFlow.response?.status_code || 200,
-            response_headers: httpFlow.response?.headers || [],
+            response_headers: (httpFlow.response?.headers || []).map(([k, v]) => ({
+                key: k,
+                operator: "eq",
+                value: v,
+            })),
             response_content: response_content,
             enabled: true,
+            cookies: [],
+            headers: [],
+            body: [],
+            reference_info: {
+                path: httpFlow.request.path,
+                query: httpFlow.request.query,
+                headers: httpFlow.request.headers,
+                cookies: httpFlow.request.cookies,
+                body: request_body,
+            }
         }));
         dispatch(modalActions.setActiveModal("InterceptRuleModal"));
     };

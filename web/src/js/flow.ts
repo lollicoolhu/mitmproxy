@@ -102,6 +102,8 @@ export interface HTTPRequest extends HTTPMessage {
     port: number;
     path: string;
     pretty_host: string;
+    query: Record<string, string>;
+    cookies: [string, string][];
 }
 
 export interface HTTPResponse extends HTTPMessage {

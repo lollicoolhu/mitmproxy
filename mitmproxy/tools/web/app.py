@@ -153,6 +153,8 @@ def flow_to_json(flow: mitmproxy.flow.Flow) -> dict:
             "path": flow.request.path,
             "http_version": flow.request.http_version,
             "headers": tuple(flow.request.headers.items(True)),
+            "query": dict(flow.request.query),
+            "cookies": list(flow.request.cookies.items(multi=True)),
             "contentLength": content_length,
             "contentHash": content_hash,
             "timestamp_start": flow.request.timestamp_start,
@@ -890,12 +892,18 @@ class CheckInterceptDuplicateHandler(RequestHandler):
     def post(self):
         config: InterceptConfig = self.master.addons.get("interceptconfig")
         rule_data = self.json
-        rule = InterceptRule(**rule_data)
-        duplicate = config.find_duplicate(rule)
-        if duplicate:
-            self.write(asdict(duplicate))
-        else:
-            self.set_status(204)
+        try:
+            valid_fields = {f.name for f in InterceptRule.__dataclass_fields__.values()}
+            filtered_data = {k: v for k, v in rule_data.items() if k in valid_fields}
+            rule = InterceptRule(**filtered_data)
+            duplicate = config.find_duplicate(rule)
+            if duplicate:
+                self.write(asdict(duplicate))
+            else:
+                self.set_status(204)
+        except Exception as e:
+            logger.error(f"Error checking duplicate rule: {e}")
+            raise APIError(400, f"Error checking duplicate: {e}")
 
 
 class InterceptRulesHandler(RequestHandler):
@@ -906,9 +914,17 @@ class InterceptRulesHandler(RequestHandler):
     def post(self):
         config: InterceptConfig = self.master.addons.get("interceptconfig")
         rule_data = self.json
-        rule = InterceptRule(**rule_data)
-        config.rules[rule.id] = rule
-        self.write(asdict(rule))
+        try:
+            # Filter out any fields that are not in InterceptRule
+            valid_fields = {f.name for f in InterceptRule.__dataclass_fields__.values()}
+            filtered_data = {k: v for k, v in rule_data.items() if k in valid_fields}
+            
+            rule = InterceptRule(**filtered_data)
+            config.rules[rule.id] = rule
+            self.write(asdict(rule))
+        except Exception as e:
+            logger.error(f"Error saving intercept rule: {e}")
+            raise APIError(400, f"Error saving rule: {e}")
 
 
 class ExportInterceptRulesHandler(RequestHandler):
@@ -927,11 +943,16 @@ class ImportInterceptRulesHandler(RequestHandler):
             rules_data = json.loads(self.filecontents.decode("utf-8"))
             if not isinstance(rules_data, list):
                 raise ValueError("Rules must be a list")
+            
+            valid_fields = {f.name for f in InterceptRule.__dataclass_fields__.values()}
             for data in rules_data:
-                rule = InterceptRule(**data)
+                # Filter out any fields that are not in InterceptRule
+                filtered_data = {k: v for k, v in data.items() if k in valid_fields}
+                rule = InterceptRule(**filtered_data)
                 config.rules[rule.id] = rule
             self.set_status(204)
         except Exception as e:
+            logger.error(f"Error importing intercept rules: {e}")
             raise APIError(400, f"Invalid rules file: {e}")
 
 

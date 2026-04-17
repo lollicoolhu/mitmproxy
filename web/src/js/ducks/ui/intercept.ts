@@ -1,15 +1,33 @@
-import { Action, Dispatch } from "redux";
+import type { Dispatch } from "redux";
+import { Action } from "redux";
 import { fetchApi } from "../../utils";
+
+export interface MatchCriterion {
+    key: string;
+    operator: string;
+    value: string;
+    logic: string;
+}
 
 export interface InterceptRule {
     id: string;
     method: string;
     path: string;
-    query: string;
+    query: MatchCriterion[];
     response_code: number;
-    response_headers: [string, string][];
+    response_headers: MatchCriterion[];
     response_content: string;
     enabled: boolean;
+    cookies: MatchCriterion[];
+    headers: MatchCriterion[];
+    body: MatchCriterion[];
+    reference_info?: {
+        path?: string;
+        query?: Record<string, string>;
+        headers?: [string, string][];
+        cookies?: [string, string][];
+        body?: string;
+    };
 }
 
 export interface InterceptState {
@@ -83,8 +101,14 @@ export function saveRule(rule: InterceptRule) {
             body: JSON.stringify(rule),
             headers: { "Content-Type": "application/json" },
         });
-        const savedRule = await response.json();
-        dispatch({ type: ADD_RULE, rule: savedRule });
+        if (response.ok) {
+            const savedRule = await response.json();
+            dispatch({ type: ADD_RULE, rule: savedRule });
+        } else {
+            const err = await response.text();
+            console.error("Error saving rule:", err);
+            alert("Error saving rule: " + err);
+        }
     };
 }
 

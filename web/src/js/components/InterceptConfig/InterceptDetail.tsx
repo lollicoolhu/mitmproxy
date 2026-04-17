@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useAppDispatch } from "../../ducks";
-import { selectRules, InterceptRule } from "../../ducks/ui/intercept";
+import type { InterceptRule } from "../../ducks/ui/intercept";
+import { selectRules } from "../../ducks/ui/intercept";
 import InterceptRuleEditor from "./InterceptRuleEditor";
 
 export default function InterceptDetail({ rule }: { rule: InterceptRule }) {

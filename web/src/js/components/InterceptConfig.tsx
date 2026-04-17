@@ -25,11 +25,23 @@ export default function InterceptConfig() {
         } else if (!selectedRule && activeRule) {
             dispatch(setActiveRule(undefined));
         }
-    }, [selectedRule?.id]);
+    }, [selectedRule?.id, activeRule?.id]);
 
     const toggleRule = (rule, e: React.MouseEvent) => {
         e.stopPropagation();
         dispatch(saveRule({ ...rule, enabled: !rule.enabled }));
+    };
+
+    const renderQuery = (query: any) => {
+        if (Array.isArray(query)) {
+            return query.map(c => {
+                if (typeof c === 'object' && c !== null) {
+                    return `${c.key || ''}${c.operator === 'eq' ? '=' : (c.operator || '=')}${c.value || ''}`;
+                }
+                return String(c);
+            }).join(', ');
+        }
+        return String(query || "");
     };
 
     return (
@@ -57,7 +69,9 @@ export default function InterceptConfig() {
                                 </td>
                                 <td className="col-method">{rule.method}</td>
                                 <td className="col-path">{rule.path}</td>
-                                <td className="col-path">{rule.query}</td>
+                                <td className="col-path">
+                                    {renderQuery(rule.query)}
+                                </td>
                                 <td className="col-status">{rule.response_code}</td>
                             </tr>
                         ))}
