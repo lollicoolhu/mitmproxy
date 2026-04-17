@@ -2,6 +2,7 @@
 AVAILABLE_WEB_COLUMNS = [
     "icon",
     "index",
+    "host",
     "method",
     "version",
     "path",

@@ -911,6 +911,30 @@ class InterceptRulesHandler(RequestHandler):
         self.write(asdict(rule))
 
 
+class ExportInterceptRulesHandler(RequestHandler):
+    def get(self):
+        config: InterceptConfig = self.master.addons.get("interceptconfig")
+        rules = [asdict(r) for r in config.rules.values()]
+        self.set_header("Content-Type", "application/json")
+        self.set_header("Content-Disposition", "attachment; filename=intercept-rules.json")
+        self.write(json.dumps(rules, indent=4))
+
+
+class ImportInterceptRulesHandler(RequestHandler):
+    def post(self):
+        config: InterceptConfig = self.master.addons.get("interceptconfig")
+        try:
+            rules_data = json.loads(self.filecontents.decode("utf-8"))
+            if not isinstance(rules_data, list):
+                raise ValueError("Rules must be a list")
+            for data in rules_data:
+                rule = InterceptRule(**data)
+                config.rules[rule.id] = rule
+            self.set_status(204)
+        except Exception as e:
+            raise APIError(400, f"Invalid rules file: {e}")
+
+
 class DeleteInterceptRuleHandler(RequestHandler):
     def delete(self, rule_id):
         config: InterceptConfig = self.master.addons.get("interceptconfig")
@@ -947,6 +971,8 @@ handlers = [
     (r"/processes", ProcessList),
     (r"/executable-icon", ProcessImage),
     (r"/intercept/rules", InterceptRulesHandler),
+    (r"/intercept/rules/export", ExportInterceptRulesHandler),
+    (r"/intercept/rules/import", ImportInterceptRulesHandler),
     (r"/intercept/rules/check-duplicate", CheckInterceptDuplicateHandler),
     (r"/intercept/rules/(?P<rule_id>[0-9a-z\-]+)", DeleteInterceptRuleHandler),
 ]  # fmt: skip

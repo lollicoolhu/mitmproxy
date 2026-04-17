@@ -10,6 +10,8 @@ import {
     startTime,
     getIcon,
     mainPath,
+    getHost,
+    getPathAndQuery,
     statusCode,
     getMethod,
     getVersion,
@@ -74,11 +76,16 @@ export const path: FlowColumn = ({ flow }) => {
             {flow.intercepted && <i className="fa fa-fw fa-pause pull-right" />}
             {err}
             <span className="marker pull-right">{flow.marked}</span>
-            {mainPath(flow)}
+            {getPathAndQuery(flow)}
         </td>
     );
 };
 path.headerName = "Path";
+
+export const host: FlowColumn = ({ flow }) => (
+    <td className="col-host">{getHost(flow)}</td>
+);
+host.headerName = "Host";
 
 export const method: FlowColumn = ({ flow }) => (
     <td className="col-method">{getMethod(flow)}</td>
@@ -148,7 +155,7 @@ export const timestamp: FlowColumn = ({ flow }) => {
     const start = startTime(flow);
     return (
         <td className="col-timestamp">
-            {start ? formatTimeStamp(start) : "..."}
+            {start ? formatTimeStamp(start, { short: true }) : "..."}
         </td>
     );
 };
@@ -200,6 +207,7 @@ const FlowColumns: { [key in keyof typeof sortFunctions]: FlowColumn } = {
     index,
     method,
     version,
+    host,
     path,
     quickactions,
     size,

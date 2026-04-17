@@ -15,15 +15,19 @@ export interface InterceptRule {
 export interface InterceptState {
     rules: InterceptRule[];
     activeRule?: InterceptRule;
+    selectedRuleIds: string[];
 }
 
 export const RECEIVE_RULES = "INTERCEPT_RECEIVE_RULES";
 export const ADD_RULE = "INTERCEPT_ADD_RULE";
 export const DELETE_RULE = "INTERCEPT_DELETE_RULE";
 export const SET_ACTIVE_RULE = "INTERCEPT_SET_ACTIVE_RULE";
+export const UPDATE_ACTIVE_RULE = "INTERCEPT_UPDATE_ACTIVE_RULE";
+export const SELECT_RULE = "INTERCEPT_SELECT_RULE";
 
 const initialState: InterceptState = {
     rules: [],
+    selectedRuleIds: [],
 };
 
 export default function reducer(state = initialState, action): InterceptState {
@@ -42,11 +46,22 @@ export default function reducer(state = initialState, action): InterceptState {
             return {
                 ...state,
                 rules: state.rules.filter((r) => r.id !== action.id),
+                selectedRuleIds: state.selectedRuleIds.filter(id => id !== action.id),
             };
         case SET_ACTIVE_RULE:
             return {
                 ...state,
                 activeRule: action.rule,
+            }
+        case UPDATE_ACTIVE_RULE:
+            return {
+                ...state,
+                activeRule: state.activeRule ? { ...state.activeRule, ...action.rule } : undefined,
+            }
+        case SELECT_RULE:
+            return {
+                ...state,
+                selectedRuleIds: action.ids,
             }
         default:
             return state;
@@ -82,6 +97,14 @@ export function deleteRule(id: string) {
 
 export function setActiveRule(rule?: InterceptRule) {
     return { type: SET_ACTIVE_RULE, rule };
+}
+
+export function updateActiveRule(rule: Partial<InterceptRule>) {
+    return { type: UPDATE_ACTIVE_RULE, rule };
+}
+
+export function selectRules(ids: string[]) {
+    return { type: SELECT_RULE, ids };
 }
 
 export async function checkDuplicate(rule: InterceptRule): Promise<InterceptRule | null> {

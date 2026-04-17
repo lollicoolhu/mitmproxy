@@ -7,6 +7,7 @@ import FlowTableHead from "./FlowTable/FlowTableHead";
 import FlowRow from "./FlowTable/FlowRow";
 import type { Flow } from "../flow";
 import type { RootState } from "../ducks";
+import { getHost } from "../flow/utils";
 
 type FlowTableProps = {
     flowView: Flow[];
@@ -23,6 +24,17 @@ type FlowTableState = {
     vScroll: VScroll;
     viewportTop: number;
 };
+
+function FlowGroupRow({ host, colSpan }: { host: string; colSpan: number }) {
+    return (
+        <tr className="flow-group-row">
+            <td colSpan={colSpan}>
+                <i className="fa fa-chevron-down" style={{ marginRight: '8px' }} />
+                <strong>{host}</strong>
+            </td>
+        </tr>
+    );
+}
 
 export class PureFlowTable extends React.Component<
     FlowTableProps,
@@ -134,6 +146,42 @@ export class PureFlowTable extends React.Component<
             listIndex,
         } = this.props;
 
+        const rows: React.ReactNode[] = [];
+        // To correctly handle virtualization boundaries: 
+        // If we are at the start of a slice, check if the previous item (not in slice) 
+        // has the same host. If so, we don't need a header here.
+        // FIX: Add boundary check to prevent crash when flowView shrinks (filtering)
+        let lastHost: string | null = null;
+        if (vScroll.start > 0 && vScroll.start - 1 < flowView.length) {
+            lastHost = getHost(flowView[vScroll.start - 1]);
+        }
+
+        flowView
+            .slice(vScroll.start, vScroll.end)
+            .forEach((flow) => {
+                const currentHost = getHost(flow);
+                if (currentHost !== lastHost) {
+                    rows.push(
+                        <FlowGroupRow 
+                            key={`group-${currentHost}-${flow.id}`} 
+                            host={currentHost} 
+                            colSpan={displayColumnNames.length + 1}
+                        />
+                    );
+                    lastHost = currentHost;
+                }
+                rows.push(
+                    <FlowRow
+                        key={flow.id}
+                        flow={flow}
+                        selected={selectedIds.has(flow.id)}
+                        highlighted={highlightedIds.has(flow.id)}
+                        displayColumnNames={displayColumnNames}
+                        rowNumber={listIndex.get(flow.id)!}
+                    />
+                );
+            });
+
         return (
             <div
                 className="flow-table"
@@ -149,18 +197,7 @@ export class PureFlowTable extends React.Component<
                     </thead>
                     <tbody>
                         <tr style={{ height: vScroll.paddingTop }} />
-                        {flowView
-                            .slice(vScroll.start, vScroll.end)
-                            .map((flow) => (
-                                <FlowRow
-                                    key={flow.id}
-                                    flow={flow}
-                                    selected={selectedIds.has(flow.id)}
-                                    highlighted={highlightedIds.has(flow.id)}
-                                    displayColumnNames={displayColumnNames}
-                                    rowNumber={listIndex.get(flow.id)!}
-                                />
-                            ))}
+                        {rows}
                         <tr style={{ height: vScroll.paddingBottom }} />
                     </tbody>
                 </table>

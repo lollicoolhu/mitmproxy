@@ -282,10 +282,34 @@ export const getVersion = (flow: Flow): string => {
     }
 };
 
+export const getHost = (flow: Flow): string => {
+    switch (flow.type) {
+        case "http":
+            return flow.request.pretty_host;
+        case "tcp":
+        case "udp":
+            return flow.server_conn?.address?.[0] || "unknown";
+        case "dns":
+            return "DNS";
+        default:
+            return "unknown";
+    }
+};
+
+export const getPathAndQuery = (flow: Flow): string => {
+    switch (flow.type) {
+        case "http":
+            return flow.request.path;
+        default:
+            return mainPath(flow);
+    }
+};
+
 export const sortFunctions = {
     tls: (flow: Flow) => flow.type === "http" && flow.request.scheme,
     icon: getIcon,
     index: () => 0, // this is broken right now - ideally we switch to uuid7s on the backend and use that.
+    host: getHost,
     path: mainPath,
     method: getMethod,
     version: getVersion,

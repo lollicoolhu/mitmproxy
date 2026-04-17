@@ -16,7 +16,11 @@ export default function MainView() {
     const currentTab = useAppSelector((state) => state.ui.tabs.current);
 
     if (currentTab === Tab.Intercept) {
-        return <InterceptConfig />;
+        return (
+            <div className="main-view">
+                <InterceptConfig />
+            </div>
+        );
     }
 
     return (

@@ -89,6 +89,14 @@
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
+
+        &:first-child {
+            padding-left: 10px;
+        }
+    }
+
+    th:first-child {
+        padding-left: 10px !important;
     }
 
     @interceptorange: hsl(30, 100%, 50%);
@@ -115,6 +123,24 @@
         .col-status {
             color: @mockedblue;
             font-weight: bold;
+        }
+    }
+
+    tr.flow-group-row {
+        background-color: #f9f9f9 !important;
+        border-bottom: 1px solid #eee;
+        line-height: 28px;
+        cursor: default;
+
+        td {
+            padding-left: 10px;
+            color: #666;
+            font-size: 11px;
+        }
+
+        .fa {
+            font-size: 10px;
+            color: #999;
         }
     }
 

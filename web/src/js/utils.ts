@@ -33,7 +33,7 @@ export const formatTimeDelta = function (milliseconds) {
 
 export const formatTimeStamp = function (
     seconds: number,
-    { includeMilliseconds = true } = {},
+    { includeMilliseconds = true, short = false } = {},
 ) {
     const date = new Date(seconds * 1000);
 
@@ -45,7 +45,11 @@ export const formatTimeStamp = function (
     const secondStr = String(date.getSeconds()).padStart(2, "0");
     const millisecondStr = String(date.getMilliseconds()).padStart(3, "0");
 
-    let timestamp = `${yearStr}-${monthStr}-${dayStr} ${hourStr}:${minuteStr}:${secondStr}`;
+    let timestamp = "";
+    if (!short) {
+        timestamp += `${yearStr}-${monthStr}-${dayStr} `;
+    }
+    timestamp += `${hourStr}:${minuteStr}:${secondStr}`;
     if (includeMilliseconds) timestamp += `.${millisecondStr}`;
 
     return timestamp;
