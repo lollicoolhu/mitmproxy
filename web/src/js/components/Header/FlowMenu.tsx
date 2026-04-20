@@ -77,6 +77,7 @@ export default function FlowMenu(): JSX.Element {
             })),
             response_content: response_content,
             enabled: true,
+            response_delay: 0,
             criteria: [],
             reference_info: {
                 path: httpFlow.request.path,

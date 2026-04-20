@@ -224,21 +224,42 @@ export default function InterceptRuleEditor({ rule }: { rule: InterceptRule }) {
 
             <div className="mt-4">
                 <h5 style={{ borderLeft: '3px solid #337ab7', paddingLeft: '8px', color: '#333', fontWeight: 'bold', fontSize: '12px', marginBottom: '16px' }}>Mock Response</h5>
-                <div className="form-group mb-4">
-                    <label style={{ fontSize: '11px' }}>Response Code</label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        style={{ width: '80px' }}
-                        value={rule.response_code}
-                        onKeyDown={stopKeyPropagation}
-                        onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (!isNaN(val)) {
-                                dispatch(updateActiveRule({ response_code: val }));
-                            }
-                        }}
-                    />
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '16px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '11px' }}>Response Code</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            style={{ width: '80px' }}
+                            value={rule.response_code}
+                            onKeyDown={stopKeyPropagation}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (!isNaN(val)) {
+                                    dispatch(updateActiveRule({ response_code: val }));
+                                }
+                            }}
+                        />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '11px' }}>Delay (ms)</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            style={{ width: '100px' }}
+                            placeholder="0"
+                            value={rule.response_delay || 0}
+                            onKeyDown={stopKeyPropagation}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (!isNaN(val)) {
+                                    dispatch(updateActiveRule({ response_delay: val }));
+                                } else if (e.target.value === "") {
+                                    dispatch(updateActiveRule({ response_delay: 0 }));
+                                }
+                            }}
+                        />
+                    </div>
                 </div>
                 
                 <div className="mb-4">

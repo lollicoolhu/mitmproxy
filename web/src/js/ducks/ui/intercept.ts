@@ -17,6 +17,7 @@ export interface InterceptRule {
     response_code: number;
     response_content: string;
     enabled: boolean;
+    response_delay: number;
     criteria: MatchCriterion[];
     response_headers: MatchCriterion[];
     reference_info?: {

@@ -41,6 +41,7 @@ class InterceptRule:
     response_code: int
     response_content: str
     enabled: bool
+    response_delay: int = 0  # 响应延迟（毫秒）
     criteria: list[dict] = field(default_factory=list)
     response_headers: list[dict] = field(default_factory=list)
     # 新增参考信息，用于展示原始请求，包含 headers, body, query, path 等
@@ -53,7 +54,7 @@ class InterceptConfig:
     def __init__(self):
         self.rules = {}
 
-    def request(self, flow: http.HTTPFlow):
+    async def request(self, flow: http.HTTPFlow):
         for rule in self.rules.values():
             if not rule.enabled:
                 continue
@@ -67,6 +68,11 @@ class InterceptConfig:
             # 2. 组合匹配规则
             if not self._match_all_criteria(rule.criteria, flow):
                 continue
+
+            # 匹配成功，处理延迟
+            if rule.response_delay > 0:
+                import asyncio
+                await asyncio.sleep(rule.response_delay / 1000.0)
 
             # 匹配成功，构造响应
             headers = []
