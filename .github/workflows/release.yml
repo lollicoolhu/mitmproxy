@@ -19,26 +19,16 @@ permissions:
 
 jobs:
   release:
+    environment: deploy-release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
+          token: ${{ secrets.GH_PUSH_TOKEN }}  # this token works to push to the protected main branch.
       - uses: actions/setup-node@v6
         with:
           node-version-file: .github/node-version.txt
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install argon2-cffi
-      
+      - uses: mhils/workflows/setup-python@8fe88b311a66c441e01edfebe4cd90d8a47fa335
       - run: ./release/release.py ${{ inputs.version }} ${{ inputs.skip-branch-status-check }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # this token works with the GraphQL API
