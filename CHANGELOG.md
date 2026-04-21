@@ -8,6 +8,9 @@
 ## Unreleased: mitmproxy next
 
 
+## 21 April 2026: mitmproxy 113.0.0
+
+
 ## 12 April 2026: mitmproxy 12.2.2
 
 - [GHSA-527g-3w9m-29hv](https://github.com/mitmproxy/mitmproxy/security/advisories/GHSA-527g-3w9m-29hv):
