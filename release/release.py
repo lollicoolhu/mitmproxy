@@ -41,7 +41,7 @@ if __name__ == "__main__":
     skip_branch_status_check = sys.argv[2] == "true"
 
     # changing this is useful for testing on a fork.
-    repo = os.environ.get("GITHUB_REPOSITORY", "mitmproxy/mitmproxy")
+    repo = os.environ.get("GITHUB_REPOSITORY", "lollicoolhu/mitmproxy")
     print(f"{version=} {skip_branch_status_check=} {repo=}")
 
     branch = subprocess.run(
@@ -185,18 +185,44 @@ if __name__ == "__main__":
     assert resp.status == 200
 
     print("➡️ Checking PyPI...")
-    pypi_data = get_json("https://pypi.org/pypi/mitmproxy/json")
-    assert version in pypi_data["releases"]
+    for _ in range(20):
+        try:
+            pypi_data = get_json("https://pypi.org/pypi/mitmproxy/json")
+            if version in pypi_data["releases"]:
+                break
+        except Exception:
+            pass
+        print(f"⌛ Version {version} not yet visible on PyPI, retrying...")
+        time.sleep(30)
+    else:
+        pypi_data = get_json("https://pypi.org/pypi/mitmproxy/json")
+        assert version in pypi_data["releases"]
 
     print("➡️ Checking docs archive...")
-    resp = get(f"https://docs.mitmproxy.org/archive/v{major_version}/")
-    assert resp.status == 200
+    for _ in range(20):
+        resp = get(f"https://docs.mitmproxy.org/archive/v{major_version}/")
+        if resp.status == 200:
+            break
+        print(f"⌛ Docs archive not yet available, retrying...")
+        time.sleep(30)
+    else:
+        resp = get(f"https://docs.mitmproxy.org/archive/v{major_version}/")
+        assert resp.status == 200
 
     print(f"➡️ Checking Docker ({version} tag)...")
-    resp = get(
-        f"https://hub.docker.com/v2/repositories/mitmproxy/mitmproxy/tags/{version}"
-    )
-    assert resp.status == 200
+    for _ in range(20):
+        resp = get(
+            f"https://hub.docker.com/v2/repositories/mitmproxy/mitmproxy/tags/{version}"
+        )
+        if resp.status == 200:
+            break
+        print(f"⌛ Docker tag {version} not yet visible, retrying...")
+        time.sleep(30)
+    else:
+        resp = get(
+            f"https://hub.docker.com/v2/repositories/mitmproxy/mitmproxy/tags/{version}"
+        )
+        assert resp.status == 200
 
     if branch == "main":
         print("➡️ Checking Docker (latest tag)...")
