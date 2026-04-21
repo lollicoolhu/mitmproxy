@@ -33,6 +33,7 @@ export interface InterceptState {
     rules: InterceptRule[];
     activeRule?: InterceptRule;
     selectedRuleIds: string[];
+    pendingImportFile?: File;
 }
 
 export const RECEIVE_RULES = "INTERCEPT_RECEIVE_RULES";
@@ -41,6 +42,7 @@ export const DELETE_RULE = "INTERCEPT_DELETE_RULE";
 export const SET_ACTIVE_RULE = "INTERCEPT_SET_ACTIVE_RULE";
 export const UPDATE_ACTIVE_RULE = "INTERCEPT_UPDATE_ACTIVE_RULE";
 export const SELECT_RULE = "INTERCEPT_SELECT_RULE";
+export const SET_PENDING_IMPORT = "INTERCEPT_SET_PENDING_IMPORT";
 
 const initialState: InterceptState = {
     rules: [],
@@ -79,6 +81,11 @@ export default function reducer(state = initialState, action): InterceptState {
             return {
                 ...state,
                 selectedRuleIds: action.ids,
+            }
+        case SET_PENDING_IMPORT:
+            return {
+                ...state,
+                pendingImportFile: action.file,
             }
         default:
             return state;
@@ -128,6 +135,10 @@ export function updateActiveRule(rule: Partial<InterceptRule>) {
 
 export function selectRules(ids: string[]) {
     return { type: SELECT_RULE, ids };
+}
+
+export function setPendingImport(file?: File) {
+    return { type: SET_PENDING_IMPORT, file };
 }
 
 export async function checkDuplicate(rule: InterceptRule): Promise<InterceptRule | null> {

@@ -27,9 +27,9 @@ type FlowTableState = {
 
 function FlowGroupRow({ host, colSpan }: { host: string; colSpan: number }) {
     return (
-        <tr className="flow-group-row">
-            <td colSpan={colSpan}>
-                <i className="fa fa-chevron-down" style={{ marginRight: '8px' }} />
+        <tr className="flow-group-row" style={{ background: '#f9f9f9', borderTop: '1px solid #eee', borderBottom: '1px solid #eee' }}>
+            <td colSpan={colSpan} style={{ padding: '4px 8px', fontSize: '11px', color: '#666' }}>
+                <i className="fa fa-chevron-down" style={{ marginRight: '8px', opacity: 0.5 }} />
                 <strong>{host}</strong>
             </td>
         </tr>
@@ -45,6 +45,7 @@ export class PureFlowTable extends React.Component<
     };
     private viewport = React.createRef<HTMLDivElement>();
     private head = React.createRef<HTMLTableSectionElement>();
+    private updateTimer: number | null = null;
 
     constructor(props, context) {
         super(props, context);
@@ -63,6 +64,7 @@ export class PureFlowTable extends React.Component<
 
     componentWillUnmount() {
         window.removeEventListener("resize", this.onViewportUpdate);
+        if (this.updateTimer) cancelAnimationFrame(this.updateTimer);
     }
 
     getSnapshotBeforeUpdate() {
@@ -77,7 +79,11 @@ export class PureFlowTable extends React.Component<
         if (snapshot) {
             autoscroll.adjustScrollTop(this.viewport);
         }
-        this.onViewportUpdate();
+        
+        // Use a slight delay or rAF to avoid immediate re-render loop
+        if (this.props.flowView !== prevProps.flowView) {
+            this.onViewportUpdate();
+        }
 
         const { onlySelectedId } = this.props;
 
@@ -108,32 +114,35 @@ export class PureFlowTable extends React.Component<
     }
 
     onViewportUpdate() {
-        const viewport = this.viewport.current!;
-        const viewportTop = viewport.scrollTop || 0;
+        if (this.updateTimer) cancelAnimationFrame(this.updateTimer);
+        
+        this.updateTimer = requestAnimationFrame(() => {
+            const viewport = this.viewport.current;
+            if (!viewport) return;
+            
+            const viewportTop = viewport.scrollTop || 0;
 
-        const vScroll = calcVScroll({
-            viewportTop,
-            viewportHeight: viewport.offsetHeight || 0,
-            itemCount: this.props.flowView.length,
-            rowHeight: this.props.rowHeight,
-        });
-
-        if (
-            this.state.viewportTop !== viewportTop ||
-            !shallowEqual(this.state.vScroll, vScroll)
-        ) {
-            // the next rendered state may only have much lower number of rows compared to what the current
-            // viewportHeight anticipates. To make sure that we update (almost) at once, we already constrain
-            // the maximum viewportTop value. See https://github.com/mitmproxy/mitmproxy/pull/5658 for details.
-            const newViewportTop = Math.min(
+            const vScroll = calcVScroll({
                 viewportTop,
-                vScroll.end * this.props.rowHeight,
-            );
-            this.setState({
-                vScroll,
-                viewportTop: newViewportTop,
+                viewportHeight: viewport.offsetHeight || 0,
+                itemCount: this.props.flowView.length,
+                rowHeight: this.props.rowHeight,
             });
-        }
+
+            if (
+                this.state.viewportTop !== viewportTop ||
+                !shallowEqual(this.state.vScroll, vScroll)
+            ) {
+                const newViewportTop = Math.min(
+                    viewportTop,
+                    vScroll.end * this.props.rowHeight,
+                );
+                this.setState({
+                    vScroll,
+                    viewportTop: newViewportTop,
+                });
+            }
+        });
     }
 
     render() {
@@ -147,11 +156,9 @@ export class PureFlowTable extends React.Component<
         } = this.props;
 
         const rows: React.ReactNode[] = [];
-        // To correctly handle virtualization boundaries: 
-        // If we are at the start of a slice, check if the previous item (not in slice) 
-        // has the same host. If so, we don't need a header here.
-        // FIX: Add boundary check to prevent crash when flowView shrinks (filtering)
         let lastHost: string | null = null;
+        
+        // Find the host of the item immediately preceding the visible slice
         if (vScroll.start > 0 && vScroll.start - 1 < flowView.length) {
             lastHost = getHost(flowView[vScroll.start - 1]);
         }

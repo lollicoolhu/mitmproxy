@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useRef } from "react"
 import { useAppDispatch, useAppSelector } from "../../ducks"
-import { fetchRules, setActiveRule, deleteRule, saveRule } from "../../ducks/ui/intercept"
+import { fetchRules, setActiveRule, deleteRule, saveRule, setPendingImport } from "../../ducks/ui/intercept"
 import * as modalActions from "../../ducks/ui/modal"
 import { fetchApi } from "../../utils"
 import Button from "../common/Button"
@@ -23,17 +23,8 @@ export default function InterceptMenu() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        try {
-            const response = await fetchApi("/intercept/rules/import", {
-                method: "POST",
-                body: file,
-            });
-            if (response.ok) {
-                dispatch(fetchRules());
-            }
-        } catch (err) {
-            console.error(err);
-        }
+        dispatch(setPendingImport(file));
+        dispatch(modalActions.setActiveModal("ImportConfirmModal"));
 
         if (fileInputRef.current) {
             fileInputRef.current.value = "";

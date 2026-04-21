@@ -939,10 +939,14 @@ class ExportInterceptRulesHandler(RequestHandler):
 class ImportInterceptRulesHandler(RequestHandler):
     def post(self):
         config: InterceptConfig = self.master.addons.get("interceptconfig")
+        overwrite = self.get_argument("overwrite", "false").lower() == "true"
         try:
             rules_data = json.loads(self.filecontents.decode("utf-8"))
             if not isinstance(rules_data, list):
                 raise ValueError("Rules must be a list")
+            
+            if overwrite:
+                config.rules.clear()
             
             valid_fields = {f.name for f in InterceptRule.__dataclass_fields__.values()}
             for data in rules_data:
