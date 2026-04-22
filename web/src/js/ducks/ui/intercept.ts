@@ -1,5 +1,4 @@
 import type { Dispatch } from "redux";
-import { Action } from "redux";
 import { fetchApi } from "../../utils";
 
 export interface MatchCriterion {

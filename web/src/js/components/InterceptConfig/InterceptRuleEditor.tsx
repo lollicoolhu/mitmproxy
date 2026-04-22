@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../ducks";
 import type { InterceptRule } from "../../ducks/ui/intercept";
 import { updateActiveRule } from "../../ducks/ui/intercept";
@@ -148,7 +148,7 @@ export default function InterceptRuleEditor({ rule }: { rule: InterceptRule }) {
                                                         {JSON.stringify(JSON.parse(ref.body), null, 4)}
                                                     </pre>
                                                 );
-                                            } catch (e) {
+                                            } catch (_e) {
                                                 /* fall back to raw */
                                             }
                                         } else if (contentType.includes('application/x-www-form-urlencoded')) {

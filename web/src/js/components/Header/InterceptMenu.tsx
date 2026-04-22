@@ -1,9 +1,8 @@
 import * as React from "react"
 import { useRef } from "react"
 import { useAppDispatch, useAppSelector } from "../../ducks"
-import { fetchRules, setActiveRule, deleteRule, saveRule, setPendingImport } from "../../ducks/ui/intercept"
+import { deleteRule, saveRule, setPendingImport } from "../../ducks/ui/intercept"
 import * as modalActions from "../../ducks/ui/modal"
-import { fetchApi } from "../../utils"
 import Button from "../common/Button"
 
 export default function InterceptMenu() {

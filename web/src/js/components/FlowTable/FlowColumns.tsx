@@ -9,7 +9,6 @@ import {
     getTotalSize,
     startTime,
     getIcon,
-    mainPath,
     getHost,
     getPathAndQuery,
     statusCode,
